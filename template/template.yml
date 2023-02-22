@@ -1,0 +1,29 @@
+parameters:
+  - name: goal
+    displayName: maven goal
+    type: string
+    default: 'package'
+    values:
+      - package
+      - clean
+      - install
+      - compile
+  - name: jdkVersion
+    displayName: 'Java Version'
+    type: string
+    default: '1.17'
+  - name: pomFilePath
+    displayName: mavenPOMFile
+    type: string
+    default: 'pom.xml'
+steps:
+    - task: Maven@3
+      inputs:
+        mavenPomFile: "${{ parameters.pomFilePath }}"
+        testResultsFiles: '**/surefire-reports/TEST-*.xml'
+        jdkVersionOption: "${{ parameters.jdkVersion }}"
+        javaHomeOption: 'path'
+        jdkDirectory:  /usr/lib/jvm/java-17-openjdk-amd64
+        goals:  "${{ parameters.goal }}"
+        mavenVersionOption: 'path'
+        mavenDirectory: /opt/maven

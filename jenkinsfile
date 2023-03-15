@@ -6,13 +6,6 @@ pipeline {
                 git url: 'https://github.com/Potulajagadeesh/spring-petclinic.git',
                 branch: 'release'
             }
-        }
-         stage('post build') {
-            steps {
-                archiveArtifacts artifacts: '**/target/spring-petclinic-3.0.0-SNAPSHOT.jar',
-                                 onlyIfSuccessful: true
-                junit testResults: '**/surefire-reports/TEST-*.xml'
-            }
         }      
         stage('sonarcloud') {
             steps {

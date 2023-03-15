@@ -1,0 +1,71 @@
+pipeline {
+    agent {label 'BUILD'}
+    stages {
+        stage('vcs') {
+            steps {
+                git url: 'https://github.com/Potulajagadeesh/spring-petclinic.git',
+                branch: 'release'
+            }
+        }
+         stage('post build') {
+            steps {
+                archiveArtifacts artifacts: '**/target/spring-petclinic-3.0.0-SNAPSHOT.jar',
+                                 onlyIfSuccessful: true
+                junit testResults: '**/surefire-reports/TEST-*.xml'
+            }
+        }      
+        stage('sonarcloud') {
+            steps {
+                sh './mvnw clean verify sonar:sonar \
+                    -Dsonar.login=9627e19ceb690545e51cc83d2e52590224912a56 \
+                    -Dsonar.host.url=https://sonarcloud.io \
+                    -Dsonar.organization=potula-jagadeesh\
+                    -Dsonar.projectKey=potula-jagadeesh_sonarqube'
+            }
+        }
+        stage('post build') {
+            steps {
+                archiveArtifacts artifacts: '**/target/spring-petclinic-3.0.0-SNAPSHOT.jar',
+                                 onlyIfSuccessful: true
+                junit testResults: '**/surefire-reports/TEST-*.xml'
+        stage ('Artifactory configuration') {
+            steps {
+                rtServer (
+                    id: "ARTIFACTORY_SERVER",
+                    url: 'https://jagadeeshpotula.jfrog.io/',
+                    credentialsId: 'jfrog'
+                )
+                rtMavenDeployer (
+                    id: "MAVEN_DEPLOYER",
+                    serverId: "ARTIFACTORY_SERVER",
+                    releaseRepo: 'libs-release',
+                    snapshotRepo: 'libs-snapshot'
+                )
+                rtMavenResolver (
+                    id: "MAVEN_RESOLVER",
+                    serverId: "ARTIFACTORY_SERVER",
+                    releaseRepo: 'libs-release',
+                    snapshotRepo: 'libs-snapshot'
+                )
+            }
+        }
+        stage('package') {
+            tools {
+                jdk 'JDK_17'
+            }
+            steps {
+                rtMavenRun (
+                    tool: 'maven',
+                    pom: 'pom.xml',
+                    goals: 'package',
+                    deployerId: "MAVEN_DEPLOYER"
+                )
+                rtPublishBuildInfo (
+                    serverId: "ARTIFACTORY_SERVER"
+                )
+                
+            }
+        }
+       
+    }
+}           
